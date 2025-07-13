@@ -1,5 +1,5 @@
 import { apiAdapter } from "@/utils/apiAdapter";
-import { HotListItem, HotListParams } from "@/types/douban";
+import { HotListParams } from "@/types/douban";
 
 export const doubanApi = {
   async getHotList(params: HotListParams) {

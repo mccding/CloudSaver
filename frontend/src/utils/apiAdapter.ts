@@ -1,5 +1,4 @@
 import { offlineApi } from './offlineApi';
-import { browserStorage, CACHE_KEYS } from './storage';
 
 // API适配器 - 用于在静态部署时自动切换到离线模式
 export class ApiAdapter {

@@ -129,22 +129,22 @@ export const useResourceStore = defineStore("resource", {
         let { data = [] } = await resourceApi.search(keyword || "", channelId, lastMessageId);
         this.keyword = keyword || "";
         data = data
-          .filter((item) => item.list.length > 0)
-          .map((x) => ({
+          .filter((item: any) => item.list.length > 0)
+          .map((x: any) => ({
             ...x,
-            list: x.list.map((item) => ({
+            list: x.list.map((item: any) => ({
               ...item,
               isSupportSave: CLOUD_DRIVES.some((drive) => drive.regex.test(item.cloudLinks[0])),
             })),
           }));
         console.log(data);
         if (isLoadMore) {
-          const findedIndex = this.resources.findIndex((item) => item.id === data[0]?.id);
+          const findedIndex = this.resources.findIndex((item: any) => item.id === data[0]?.id);
           if (findedIndex !== -1) {
             this.resources[findedIndex].list.push(...data[0].list);
           }
           if (data.length === 0) {
-            const list = this.resources.find((item) => item.id === channelId)?.list;
+            const list = this.resources.find((item: any) => item.id === channelId)?.list;
             list && list[list.length - 1] && (list[list.length - 1]!.isLastMessage = true);
             ElMessage.warning("没有更多了~");
           }

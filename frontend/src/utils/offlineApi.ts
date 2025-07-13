@@ -1,7 +1,6 @@
 import { browserStorage, CACHE_KEYS } from './storage';
 import type { 
   Resource, 
-  ShareInfoResponse, 
   Folder, 
   SaveFileParams, 
   GetShareInfoParams,
@@ -62,7 +61,7 @@ export class OfflineApi {
   }
 
   // 模拟资源搜索
-  async search(keyword: string, channelId?: string, lastMessageId?: string) {
+  async search(keyword: string, _channelId?: string, _lastMessageId?: string) {
     // 从缓存获取资源列表
     const cachedResources = browserStorage.get<Resource[]>(CACHE_KEYS.RESOURCE_LIST) || [];
     
@@ -150,7 +149,7 @@ export class OfflineApi {
   }
 
   // 模拟豆瓣热门列表
-  async getDoubanHotList(params: HotListParams) {
+  async getDoubanHotList(_params: HotListParams) {
     const mockHotList: HotListItem[] = [
       {
         id: '1',
@@ -193,7 +192,7 @@ export class OfflineApi {
     };
   }
 
-  async getCloudFolders(parentCid = '0') {
+  async getCloudFolders(_parentCid = '0') {
     const mockFolders: Folder[] = [
       {
         cid: '1',
@@ -209,7 +208,7 @@ export class OfflineApi {
     };
   }
 
-  async saveCloudFile(params: SaveFileParams) {
+  async saveCloudFile(_params: SaveFileParams) {
     return {
       code: 0,
       message: '转存成功（离线模式）'

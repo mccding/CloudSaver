@@ -1,5 +1,5 @@
 import { apiAdapter } from "@/utils/apiAdapter";
-import type { ShareInfoResponse, Folder, SaveFileParams, GetShareInfoParams } from "@/types";
+import type { ShareInfoResponse, SaveFileParams, GetShareInfoParams } from "@/types";
 
 export const cloud115Api = {
   async getShareInfo(params: GetShareInfoParams) {
