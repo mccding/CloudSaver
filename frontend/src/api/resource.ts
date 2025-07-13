@@ -1,10 +1,8 @@
-import request from "@/utils/request";
+import { apiAdapter } from "@/utils/apiAdapter";
 import type { Resource } from "@/types/index";
 
 export const resourceApi = {
-  search(keyword: string, channelId?: string, lastMessageId?: string) {
-    return request.get<Resource[]>(`/api/search`, {
-      params: { keyword, channelId, lastMessageId },
-    });
+  async search(keyword: string, channelId?: string, lastMessageId?: string) {
+    return await apiAdapter.search(keyword, channelId, lastMessageId);
   },
 };

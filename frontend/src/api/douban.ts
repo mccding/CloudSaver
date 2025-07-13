@@ -1,11 +1,9 @@
-import request from "@/utils/request";
+import { apiAdapter } from "@/utils/apiAdapter";
 import { HotListItem, HotListParams } from "@/types/douban";
 
 export const doubanApi = {
   async getHotList(params: HotListParams) {
-    const { data } = await request.get<HotListItem[]>("/api/douban/hot", {
-      params,
-    });
-    return data;
+    const result = await apiAdapter.getDoubanHotList(params);
+    return result.data;
   },
 };

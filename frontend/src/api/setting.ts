@@ -1,17 +1,14 @@
-import request from "@/utils/request";
+import { apiAdapter } from "@/utils/apiAdapter";
 import type { GlobalSettingAttributes, UserSettingAttributes } from "@/types";
 
 export const settingApi = {
-  getSetting: () => {
-    return request.get<{
-      userSettings: UserSettingAttributes;
-      globalSetting: GlobalSettingAttributes;
-    }>("/api/setting/get");
+  async getSetting() {
+    return await apiAdapter.getSettings();
   },
-  saveSetting: (data: {
+  async saveSetting(data: {
     userSettings: UserSettingAttributes;
     globalSetting?: GlobalSettingAttributes | null;
-  }) => {
-    return request.post("/api/setting/save", data);
+  }) {
+    return await apiAdapter.saveSettings(data);
   },
 };

@@ -181,6 +181,42 @@ cp ./backend/.env.example ./backend/.env
 pnpm dev
 ```
 
+### 静态部署（推荐）
+
+项目支持静态部署，所有数据缓存在浏览器中，无需后端服务器。
+
+#### 快速部署
+
+```bash
+# 运行部署脚本
+./deploy-static.sh
+```
+
+#### 手动部署
+
+1. 构建前端
+```bash
+cd frontend
+npm install
+npm run build
+```
+
+2. 部署到静态服务器
+将 `frontend/dist` 目录部署到任何静态文件服务器
+
+3. 配置路由
+确保服务器支持SPA路由重写规则（详见 `nginx-static.conf`）
+
+#### 支持的部署平台
+- GitHub Pages
+- Netlify
+- Vercel
+- 阿里云OSS
+- 腾讯云COS
+- 七牛云
+
+详细部署说明请查看：[静态部署指南](./frontend/static-deploy.md)
+
 ### 生产环境部署
 
 1. 构建前端
