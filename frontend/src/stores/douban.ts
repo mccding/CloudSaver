@@ -42,7 +42,9 @@ export const useDoubanStore = defineStore("douban", {
           ElMessage.warning("获取热门列表失败");
         }
       } catch (error) {
-        ElMessage.error(error || "获取热门列表失败");
+        console.error('豆瓣API调用失败:', error);
+        const errorMessage = error instanceof Error ? error.message : "获取热门列表失败";
+        ElMessage.error(errorMessage);
       } finally {
         this.loading = false;
       }

@@ -89,6 +89,33 @@ export class BrowserDatabase {
     this.storage.setItem(`user_settings_${userId}`, JSON.stringify(settings));
   }
 
+  // 通用缓存方法
+  async cacheData(key: string, data: any, maxAge: number = 30 * 60 * 1000) {
+    const cacheData = {
+      data,
+      timestamp: Date.now(),
+      maxAge
+    };
+    this.storage.setItem(`cache_${key}`, JSON.stringify(cacheData));
+  }
+
+  async getCachedData(key: string) {
+    const cacheKey = `cache_${key}`;
+    const cacheStr = this.storage.getItem(cacheKey);
+    if (!cacheStr) return null;
+    
+    const cacheData = JSON.parse(cacheStr);
+    const now = Date.now();
+    const cacheAge = now - cacheData.timestamp;
+    
+    if (cacheAge > cacheData.maxAge) {
+      this.storage.removeItem(cacheKey);
+      return null;
+    }
+    
+    return cacheData.data;
+  }
+
   // 资源缓存
   async cacheResources(keyword: string, resources: any[]) {
     const cacheKey = `resource_cache_${keyword}`;
@@ -174,12 +201,13 @@ export class BrowserDatabase {
     const now = Date.now();
     
     keys.forEach(key => {
-      if (key.startsWith('resource_cache_')) {
+      if (key.startsWith('resource_cache_') || key.startsWith('cache_')) {
         const dataStr = this.storage.getItem(key);
         if (dataStr) {
           const data = JSON.parse(dataStr);
           const age = now - data.timestamp;
-          if (age > 60 * 60 * 1000) { // 1小时过期
+          const maxAge = data.maxAge || 60 * 60 * 1000; // 默认1小时过期
+          if (age > maxAge) {
             this.storage.removeItem(key);
           }
         }

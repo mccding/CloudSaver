@@ -63,16 +63,18 @@ export class ApiAdapter {
     };
   }
 
-  // 资源搜索API - 调用真实API但缓存结果
+  // 资源搜索API - 调用真实API并缓存结果
   async search(keyword: string, channelId?: string, lastMessageId?: string) {
-    // 先检查缓存
-    const cachedData = await this.database.getCachedResources(keyword);
-    if (cachedData && !channelId && !lastMessageId) {
-      return {
-        code: 0,
-        data: cachedData,
-        message: '从缓存获取'
-      };
+    // 先检查缓存（仅在没有分页参数时）
+    if (!channelId && !lastMessageId) {
+      const cachedData = await this.database.getCachedResources(keyword);
+      if (cachedData) {
+        return {
+          code: 0,
+          data: cachedData,
+          message: '从缓存获取'
+        };
+      }
     }
 
     // 调用真实API
@@ -85,85 +87,20 @@ export class ApiAdapter {
       const response = await fetch(`/api/search?${params.toString()}`);
       
       if (!response.ok) {
-        // 如果API不可用，返回模拟数据
-        const mockData = [
-          {
-            id: 'mock_channel_1',
-            channelInfo: {
-              name: '模拟资源频道',
-              channelLogo: '',
-              channelId: 'mock_channel_1'
-            },
-            displayList: true,
-            list: [
-              {
-                id: '1',
-                title: `模拟资源 - ${keyword}`,
-                cloudLinks: ['https://pan.quark.cn/s/mock123'],
-                cloudType: 'quark',
-                channel: '模拟频道',
-                pubDate: new Date().toISOString(),
-                isSupportSave: true
-              }
-            ]
-          }
-        ];
-        
-        // 缓存模拟数据
-        if (!channelId && !lastMessageId) {
-          await this.database.cacheResources(keyword, mockData);
-        }
-        
-        return {
-          code: 0,
-          data: mockData,
-          message: 'API不可用，显示模拟数据'
-        };
+        throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
       }
       
       const result = await response.json();
       
-      // 缓存搜索结果
+      // 缓存搜索结果（仅在没有分页参数时）
       if (result.code === 0 && result.data && !channelId && !lastMessageId) {
         await this.database.cacheResources(keyword, result.data);
       }
       
       return result;
     } catch (error) {
-      // 网络错误时返回模拟数据
-      const mockData = [
-        {
-          id: 'mock_channel_1',
-          channelInfo: {
-            name: '模拟资源频道',
-            channelLogo: '',
-            channelId: 'mock_channel_1'
-          },
-          displayList: true,
-          list: [
-            {
-              id: '1',
-              title: `模拟资源 - ${keyword}`,
-              cloudLinks: ['https://pan.quark.cn/s/mock123'],
-              cloudType: 'quark',
-              channel: '模拟频道',
-              pubDate: new Date().toISOString(),
-              isSupportSave: true
-            }
-          ]
-        }
-      ];
-      
-      // 缓存模拟数据
-      if (!channelId && !lastMessageId) {
-        await this.database.cacheResources(keyword, mockData);
-      }
-      
-      return {
-        code: 0,
-        data: mockData,
-        message: '网络错误，显示模拟数据'
-      };
+      console.error('搜索API调用失败:', error);
+      throw new Error('搜索服务暂时不可用，请稍后重试');
     }
   }
 
@@ -226,135 +163,106 @@ export class ApiAdapter {
     };
   }
 
-  // 豆瓣相关API - 调用真实API
+  // 豆瓣相关API - 调用真实API并缓存
   async getDoubanHotList(params: any) {
+    // 先检查缓存
+    const cacheKey = `douban_hot_${JSON.stringify(params)}`;
+    const cachedData = await this.database.getCachedData(cacheKey);
+    if (cachedData) {
+      return {
+        code: 0,
+        data: cachedData,
+        message: '从缓存获取'
+      };
+    }
+
     try {
       const queryParams = new URLSearchParams(params);
       const response = await fetch(`/api/douban/hot?${queryParams.toString()}`);
       
       if (!response.ok) {
-        // 如果API不可用，返回模拟数据
-        return {
-          code: 0,
-          data: [
-            {
-              id: '1',
-              title: '模拟热门电影',
-              rate: '8.5',
-              cover: '',
-              cover_x: 200,
-              cover_y: 300,
-              episodes_info: '',
-              is_new: false,
-              playable: true,
-              url: ''
-            }
-          ],
-          message: 'API不可用，显示模拟数据'
-        };
+        throw new Error(`豆瓣API请求失败: ${response.status} ${response.statusText}`);
       }
       
-      return await response.json();
+      const result = await response.json();
+      
+      // 缓存结果
+      if (result.code === 0 && result.data) {
+        await this.database.cacheData(cacheKey, result.data, 30 * 60 * 1000); // 缓存30分钟
+      }
+      
+      return result;
     } catch (error) {
-      // 网络错误时返回模拟数据
-      return {
-        code: 0,
-        data: [
-          {
-            id: '1',
-            title: '模拟热门电影',
-            rate: '8.5',
-            cover: '',
-            cover_x: 200,
-            cover_y: 300,
-            episodes_info: '',
-            is_new: false,
-            playable: true,
-            url: ''
-          }
-        ],
-        message: '网络错误，显示模拟数据'
-      };
+      console.error('豆瓣API调用失败:', error);
+      throw new Error('豆瓣服务暂时不可用，请稍后重试');
     }
   }
 
-  // 网盘相关API - 调用真实API
+  // 网盘相关API - 调用真实API并缓存
   async getCloudShareInfo(cloudType: string, params: any) {
+    // 先检查缓存
+    const cacheKey = `${cloudType}_share_${JSON.stringify(params)}`;
+    const cachedData = await this.database.getCachedData(cacheKey);
+    if (cachedData) {
+      return {
+        code: 0,
+        data: cachedData,
+        message: '从缓存获取'
+      };
+    }
+
     try {
       const queryParams = new URLSearchParams(params);
       const response = await fetch(`/api/${cloudType}/share-info?${queryParams.toString()}`);
       
       if (!response.ok) {
-        return {
-          code: 0,
-          data: {
-            list: [
-              {
-                fileId: 'mock_file_1',
-                fileName: '模拟文件',
-                fileSize: '1GB',
-                fileIdToken: 'mock_token'
-              }
-            ],
-            pwdId: params.shareCode,
-            stoken: params.receiveCode || ''
-          },
-          message: 'API不可用，显示模拟数据'
-        };
+        throw new Error(`${cloudType} API请求失败: ${response.status} ${response.statusText}`);
       }
       
-      return await response.json();
+      const result = await response.json();
+      
+      // 缓存结果
+      if (result.code === 0 && result.data) {
+        await this.database.cacheData(cacheKey, result.data, 60 * 60 * 1000); // 缓存1小时
+      }
+      
+      return result;
     } catch (error) {
-      return {
-        code: 0,
-        data: {
-          list: [
-            {
-              fileId: 'mock_file_1',
-              fileName: '模拟文件',
-              fileSize: '1GB',
-              fileIdToken: 'mock_token'
-            }
-          ],
-          pwdId: params.shareCode,
-          stoken: params.receiveCode || ''
-        },
-        message: '网络错误，显示模拟数据'
-      };
+      console.error(`${cloudType} API调用失败:`, error);
+      throw new Error(`${cloudType}服务暂时不可用，请稍后重试`);
     }
   }
 
   async getCloudFolders(cloudType: string, parentCid = '0') {
+    // 先检查缓存
+    const cacheKey = `${cloudType}_folders_${parentCid}`;
+    const cachedData = await this.database.getCachedData(cacheKey);
+    if (cachedData) {
+      return {
+        code: 0,
+        data: cachedData,
+        message: '从缓存获取'
+      };
+    }
+
     try {
       const response = await fetch(`/api/${cloudType}/folders?parentCid=${parentCid}`);
       
       if (!response.ok) {
-        return {
-          code: 0,
-          data: [
-            {
-              cid: '1',
-              name: '模拟文件夹',
-              path: []
-            }
-          ],
-          message: 'API不可用，显示模拟数据'
-        };
+        throw new Error(`${cloudType}文件夹API请求失败: ${response.status} ${response.statusText}`);
       }
       
-      return await response.json();
+      const result = await response.json();
+      
+      // 缓存结果
+      if (result.code === 0 && result.data) {
+        await this.database.cacheData(cacheKey, result.data, 30 * 60 * 1000); // 缓存30分钟
+      }
+      
+      return result;
     } catch (error) {
-      return {
-        code: 0,
-        data: [
-          {
-            cid: '1',
-            name: '模拟文件夹',
-            path: []
-          }
-        ],
-        message: '网络错误，显示模拟数据'
-      };
+      console.error(`${cloudType}文件夹API调用失败:`, error);
+      throw new Error(`${cloudType}服务暂时不可用，请稍后重试`);
     }
   }
 
@@ -369,53 +277,47 @@ export class ApiAdapter {
       });
       
       if (!response.ok) {
-        return {
-          code: 0,
-          message: '转存成功（模拟模式）'
-        };
+        throw new Error(`${cloudType}转存API请求失败: ${response.status} ${response.statusText}`);
       }
       
       return await response.json();
     } catch (error) {
-      return {
-        code: 0,
-        message: '转存成功（模拟模式）'
-      };
+      console.error(`${cloudType}转存API调用失败:`, error);
+      throw new Error(`${cloudType}转存服务暂时不可用，请稍后重试`);
     }
   }
 
-  // 赞助者API - 调用真实API
+  // 赞助者API - 调用真实API并缓存
   async getSponsors() {
+    // 先检查缓存
+    const cacheKey = 'sponsors';
+    const cachedData = await this.database.getCachedData(cacheKey);
+    if (cachedData) {
+      return {
+        code: 0,
+        data: cachedData,
+        message: '从缓存获取'
+      };
+    }
+
     try {
       const response = await fetch('/api/sponsors');
       
       if (!response.ok) {
-        return {
-          code: 0,
-          data: [
-            {
-              name: '模拟赞助者',
-              amount: '100',
-              date: new Date().toISOString()
-            }
-          ],
-          message: 'API不可用，显示模拟数据'
-        };
+        throw new Error(`赞助者API请求失败: ${response.status} ${response.statusText}`);
       }
       
-      return await response.json();
+      const result = await response.json();
+      
+      // 缓存结果
+      if (result.code === 0 && result.data) {
+        await this.database.cacheData(cacheKey, result.data, 60 * 60 * 1000); // 缓存1小时
+      }
+      
+      return result;
     } catch (error) {
-      return {
-        code: 0,
-        data: [
-          {
-            name: '模拟赞助者',
-            amount: '100',
-            date: new Date().toISOString()
-          }
-        ],
-        message: '网络错误，显示模拟数据'
-      };
+      console.error('赞助者API调用失败:', error);
+      throw new Error('赞助者服务暂时不可用，请稍后重试');
     }
   }
 
